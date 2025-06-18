@@ -47,7 +47,8 @@ class LCMAgent():
         self.se = se
         self.command_profile = command_profile
 
-        self.dt = 1/50 #1/30 #1/50
+        self.dt = 1/50 
+        self.cmd_dt = 1/20 #1/50
         self.timestep = 0
 
         self.num_envs = 1
@@ -98,6 +99,15 @@ class LCMAgent():
         self.current_arm_command = np.zeros(14)
         self.current_base_command = np.zeros(4)
         self.act_step = 0
+        self.flag=0
+
+        # 在类的 __init__ 中
+        self.cmd_lock = threading.Lock()
+        ## control_loop线程：
+        self.control_loop_thread = threading.Thread(target=self.command_get_loop, daemon=True)
+        self.control_loop_thread.start()
+        
+
         
     def close_connections(self):
         """Clean up network resources"""
@@ -110,27 +120,34 @@ class LCMAgent():
 
     def __del__(self):
         self.close_connections()
-        
+    
+    def command_get_loop(self):
+        """Continuously fetch commands from the network"""
+        while True:
+            self.get_current_q_command()
+            time.sleep(self.cmd_dt)
+    
     def get_current_q_command(self):
         with data_lock:
             self.current_q_cmd = latest_cmd.copy() if latest_cmd is not None else None
         if self.current_q_cmd is not None:
             ### 解析
-            if self.debug:
-                # print(f"[GR00T Start] Current command: {self.current_q_cmd}")
-                # print('arm cmd shape:', np.atleast_1d(self.current_q_cmd['arm_action'][self.act_step]).shape)
-                # self.current_arm_command = self.default_dof_pos[13:]
-                # print('base cmd shape:', np.atleast_1d(self.current_q_cmd['base_action'][self.act_step]).shape)
-                self.current_arm_command = np.atleast_1d(self.current_q_cmd['arm_action'][self.act_step])
-                self.current_base_command = np.atleast_1d(self.current_q_cmd['base_action'][self.act_step])
-            else:
-                self.current_arm_command = np.atleast_1d(self.current_q_cmd['arm_action'][self.act_step])
-                self.current_base_command = np.atleast_1d(self.current_q_cmd['base_action'][self.act_step])
+            with self.cmd_lock:
+                if self.debug:
+                    # print(f"[GR00T Start] Current command: {self.current_q_cmd}")
+                    # print('arm cmd shape:', np.atleast_1d(self.current_q_cmd['arm_action'][self.act_step]).shape)
+                    # self.current_arm_command = self.default_dof_pos[13:]
+                    # print('base cmd shape:', np.atleast_1d(self.current_q_cmd['base_action'][self.act_step]).shape)
+                    self.current_arm_command = np.atleast_1d(self.current_q_cmd['arm_action'][self.act_step])
+                    self.current_base_command = np.atleast_1d(self.current_q_cmd['base_action'][self.act_step])
+                else:
+                    self.current_arm_command = np.atleast_1d(self.current_q_cmd['arm_action'][self.act_step])
+                    self.current_base_command = np.atleast_1d(self.current_q_cmd['base_action'][self.act_step])
             self.act_step += 1
-            if self.act_step == 15:
-                flag=1
+            if self.act_step == 13:
+                self.flag=1
             else:
-                flag=0
+                self.flag=0
 
             #print('self.act_step:', self.act_step)
             
@@ -140,18 +157,20 @@ class LCMAgent():
 
             if self.current_q_cmd != self.prev_command:
                 print('Difference Reset')
-                self.act_step = 0
+                self.act_step = 3
 
             self.prev_command = self.current_q_cmd.copy()
-            zmq_msg = f"infer_start {flag}"
+            zmq_msg = f"infer_start {self.flag}"
             self.socket.send_string(zmq_msg)
             #print(f"[GR00T Start Published] {zmq_msg}")
+
 
     def get_obs(self):
         self.gravity_vector = self.se.get_gravity_vector()
         
         if self.own_policy and self.current_q_cmd is not None:
-            self.commands[:, :] = self.current_base_command[:self.num_commands].copy()
+            with self.cmd_lock:
+                self.commands[:, :] = self.current_base_command[:self.num_commands].copy()
         else:
             cmds = self.command_profile.get_command(self.timestep * self.dt)
             self.commands[:, :] = cmds[:self.num_commands]
@@ -190,8 +209,9 @@ class LCMAgent():
         command_for_robot = pd_tau_targets_lcmt()
         scaled_pos_target = action * 0.25 + self.default_dof_pos[:12]
         self.joint_pos_target[:12] = scaled_pos_target[:12]
-
-        current_sol_q = self.current_arm_command.copy() if self.current_q_cmd is not None else None
+        
+        with self.cmd_lock:
+            current_sol_q = self.current_arm_command.copy() if self.current_q_cmd is not None else None
 
         if current_sol_q is not None:
             #print(f"[50Hz Loop] Using sol_q: {current_sol_q}")
@@ -210,49 +230,19 @@ class LCMAgent():
         arm_action.act = current_sol_q
         lc.publish("arm_action", arm_action.encode())
 
-        # hand_action = hand_action_lcmt()
-        # hand_action.act = sol_q_hand
-        # lc.publish("hand_action", hand_action.encode())
-
-
-    # def publish_action(self, action, hard_reset=False):
-    #     action = action.cpu().numpy()
-    #     command_for_robot = pd_tau_targets_lcmt()
-    #     scaled_pos_target = action * 0.25 + self.default_dof_pos[:12]
-    #     # torques = (scaled_pos_target - self.dof_pos[:12]) * self.p_gains[:12]  - self.dof_vel[:12] * self.d_gains[:12]   
-    #     # torques = np.clip(torques[:12], -self.torque_limit[:12], self.torque_limit[:12])
-    #     self.joint_pos_target[:12] = scaled_pos_target[:12]
-    #     # arm_actions = self.se.get_arm_action()
-    #     # self.joint_pos_target[15:] = 0.#arm_actions
-    #     # self.joint_pos_target[12] = scaled_pos_target[12] # waist
-    #     # self.joint_pos_target[15:] = scaled_pos_target[13:]
-    #     # self.torques[:12] = torques[:12]
-    #     # print("torques: ", torques)
-    #     # print("==============================================================================")
-    #     # self.torques[15:] = torques[13:] 
-    #     command_for_robot.q_des = self.joint_pos_target
-    #     command_for_robot.tau_ff = self.torques
-    #     command_for_robot.timestamp_us = int(time.time() * 10 ** 6)
-
-    #     lc.publish("pd_plustau_targets", command_for_robot.encode())
-
-    #     # arm_action = arm_action_lcmt()
-    #     # arm_action.act = arm_actions
-    #     # lc.publish("new_arm_action", arm_action.encode())
-
     def reset(self):
         self.actions = torch.zeros(12)
         self.time = time.time()
         self.timestep = 0
-        self.current_arm_command = np.zeros(14)
-        self.current_base_command = np.zeros(4)
+        with self.cmd_lock:
+            self.current_arm_command = np.zeros(14)
+            self.current_base_command = np.zeros(4)
         self.act_step = 0
         self.get_current_q_command()
         return self.get_obs()
 
 
     def step(self, actions, hard_reset=False):
-        self.get_current_q_command()
         
         clip_actions = 100.
         self.last_actions = self.actions[:]
