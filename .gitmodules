@@ -1,3 +1,6 @@
 [submodule "OpenWBC_to_Lerobot"]
 	path = OpenWBC_to_Lerobot
 	url = https://github.com/JimmyPang02/OpenWBC_to_Lerobot.git
+[submodule "Gr00t_Deploy"]
+	path = Gr00t_Deploy
+	url = https://github.com/FurryGreen/gr00t_modified_for_OpenWBC.git
