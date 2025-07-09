@@ -29,7 +29,7 @@ This project implements whole-body control for the Unitree G1 robot: using Apple
 We plan to support the following features in future versions:
 
 - [x] **Data Format Conversion**: Convert collected data to LeRobot format (Available in [OpenWBC_to_Lerobot](https://github.com/JimmyPang02/OpenWBC_to_Lerobot/tree/main) submodule)
-- [ ] **AI Training Integration**: Support training NVIDIA GR00T and other advanced VLA models
+- [X] **VLA Training Integration**: Support training NVIDIA GR00T N1.5 (Available in [gr00t_modified_for_OpenWBC](https://github.com/FurryGreen/gr00t_modified_for_OpenWBC/tree/ebed79e4c73f9603f8dfdd311a84b4b827bebbda) submodule)
 
 ## 🤖 Future AI Training Pipeline
 
@@ -37,7 +37,7 @@ We plan to implement a complete data collection to AI training pipeline:
 
 1. **Data Collection**: Use this system to collect whole-body motion data ✅ *Implemented*
 2. **Format Conversion**: Use [OpenWBC_to_Lerobot](https://github.com/JimmyPang02/OpenWBC_to_Lerobot/tree/main) to convert data to LeRobot format ✅ *Implemented*
-3. **Model Training**: Use [NVIDIA Isaac GR00T](https://github.com/NVIDIA/Isaac-GR00T) to train full-body mobile manipulation models 📋 *Planned*
+3. **Model Training**: Use [NVIDIA Isaac GR00T](https://github.com/NVIDIA/Isaac-GR00T) to train full-body mobile manipulation models ✅ *Implemented*
 
 ### Related Projects
 
