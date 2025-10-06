@@ -16,6 +16,11 @@ This project implements whole-body control for the Unitree G1 robot: using Apple
 
 ![Demo](demos_all.gif)
 
+---
+
+🚀 Don’t miss our related project [TrajBooster](https://github.com/jiachengliu3/OpenTrajBooster) — it’s built upon OpenWBC and **boosts VLA on humanoid whole-body manipulation via trajectory-centric learning**!  
+If you like this repo, please consider citing or starring it too 🙌
+
 ## 🚀 Key Features
 
 - **Dual-mode Control**: Upper body teleoperation + Lower body autonomous locomotion
