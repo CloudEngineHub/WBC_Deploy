@@ -18,6 +18,10 @@ This project implements whole-body control for the Unitree G1 robot: using Apple
 
 ---
 
+## 🔥🔥 News
+
+- (🔥 New) [2026/02/01] **TrajBooster is accepted by ICRA-2026.** 🎉🎉🎉
+
 🚀 Don’t miss our related project [TrajBooster](https://github.com/jiachengliu3/OpenTrajBooster) — it’s built upon OpenWBC and **boosts VLA on humanoid whole-body manipulation via trajectory-centric learning**!  
 If you like this repo, please consider citing or starring it too 🙌
 
@@ -248,4 +252,16 @@ Please refer to the license terms of the related sub-projects.
 
 Welcome to submit Issues and Pull Requests to improve this project.
 
- 
+## 📖 Citation
+
+If you find our work helpful, please consider citing:
+
+```bibtex
+@article{liu2025trajbooster,
+  title={TrajBooster: Boosting Humanoid Whole-Body Manipulation via Trajectory-Centric Learning},
+  author={Liu, Jiacheng and Ding, Pengxiang and Zhou, Qihang and Wu, Yuxuan and Huang, Da and Peng, Zimian and Xiao, Wei and Zhang, Weinan and Yang, Lixin and Lu, Cewu and Wang, Donglin},
+  journal={arXiv preprint arXiv:2509.11839},
+  year={2025}
+}
+```
+
